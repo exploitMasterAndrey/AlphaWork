@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Random;
 
 @Component
 @Import(FeignClientsConfiguration.class)
@@ -75,7 +76,7 @@ public class MainService {
             ResponseEntity<Map> brokeGifResponse = gifClient.getGif(new URI(gifBaseUrl + "&api_key=" + gifApiKey + "&q=rich"));
             Map brokeGifBody = brokeGifResponse.getBody();
             ArrayList<Map> data = (ArrayList<Map>) brokeGifBody.get("data");
-            LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>> linkedHashMapRichGif = (LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>>) data.get(0);
+            LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>> linkedHashMapRichGif = (LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>>) data.get(new Random().nextInt(26) - 1);
             LinkedHashMap<String, LinkedHashMap<String, String>> images = (LinkedHashMap<String, LinkedHashMap<String, String>>) linkedHashMapRichGif.get("images");
             LinkedHashMap<String, String> original = (LinkedHashMap<String, String>) images.get("original");
 
@@ -87,7 +88,7 @@ public class MainService {
             ResponseEntity<Map> brokeGifResponse = gifClient.getGif(new URI(gifBaseUrl + "&api_key=" + gifApiKey + "&q=broke"));
             Map brokeGifBody = brokeGifResponse.getBody();
             ArrayList<Map> data = (ArrayList<Map>) brokeGifBody.get("data");
-            LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>> linkedHashMapBrokeGif = (LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>>) data.get(0);
+            LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>> linkedHashMapBrokeGif = (LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>>) data.get(new Random().nextInt(26) - 1);
             LinkedHashMap<String, LinkedHashMap<String, String>> images = (LinkedHashMap<String, LinkedHashMap<String, String>>) linkedHashMapBrokeGif.get("images");
             LinkedHashMap<String, String> original = (LinkedHashMap<String, String>) images.get("original");
 
