@@ -7,7 +7,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-import java.net.URISyntaxException;
 
 @Controller
 public class MainController {
@@ -19,7 +18,7 @@ public class MainController {
     }
 
     @GetMapping("/{currency}")
-    public String getGif(@PathVariable("currency") String currency, Model model) throws URISyntaxException {
+    public String getGif(@PathVariable("currency") String currency, Model model) {
         String gifUrl = mainService.process(currency);
         model.addAttribute("url", gifUrl);
 

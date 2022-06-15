@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.openfeign.FeignClientsConfiguration;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
@@ -48,51 +49,82 @@ public class MainService {
         currDate = LocalDate.now();
     }
 
-    public ResponseEntity<Map> getStatisticsToday() throws URISyntaxException{
-        String date = currDate.toString();
-        return moneyClient.getMoneyInfo(new URI(moneyBaseURL + date + ".json?app_id=" + moneyApiID));
+    public ResponseEntity<Map> getStatisticsToday(){
+        try {
+            String date = currDate.toString();
+            return moneyClient.getMoneyInfo(new URI(moneyBaseURL + date + ".json?app_id=" + moneyApiID));
+        }
+        catch (URISyntaxException e){
+            return new ResponseEntity<Map>(HttpStatus.NOT_FOUND);
+        }
+
     }
 
-    public ResponseEntity<Map> getStatisticsBefore() throws URISyntaxException{
-        String date = currDate.minusDays(1l).toString();
-        return moneyClient.getMoneyInfo(new URI(moneyBaseURL + date + ".json?app_id=" + moneyApiID));
+    public ResponseEntity<Map> getStatisticsBefore(){
+        try {
+            String date = currDate.minusDays(1l).toString();
+            return moneyClient.getMoneyInfo(new URI(moneyBaseURL + date + ".json?app_id=" + moneyApiID));
+        }
+        catch (URISyntaxException e){
+            return new ResponseEntity<Map>(HttpStatus.NOT_FOUND);
+        }
     }
 
-    public String process(String currency) throws URISyntaxException{
+    public ResponseEntity<Map> getRichGif(){
+        try {
+            return gifClient.getGif(new URI(gifBaseUrl + "&api_key=" + gifApiKey + "&q=rich"));
+        }
+        catch (URISyntaxException e){
+            return new ResponseEntity<Map>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    public ResponseEntity<Map> getBrokeGif(){
+        try {
+            return gifClient.getGif(new URI(gifBaseUrl + "&api_key=" + gifApiKey + "&q=broke"));
+        }
+        catch (URISyntaxException e){
+            return new ResponseEntity<Map>(HttpStatus.NOT_FOUND);
+        }
+    }
+
+    public String getGifUrlFromParse(ResponseEntity<Map> response){
+        Map Body = response.getBody();
+        ArrayList<Map> data = (ArrayList<Map>) Body.get("data");
+        LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>> gifs = (LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>>) data.get(new Random().nextInt(26) - 1);
+        LinkedHashMap<String, LinkedHashMap<String, String>> images = (LinkedHashMap<String, LinkedHashMap<String, String>>) gifs.get("images");
+        LinkedHashMap<String, String> original = (LinkedHashMap<String, String>) images.get("original");
+        return original.get("url");
+    }
+
+    public Double getRateFromParse(ResponseEntity<Map> response, String currency){
+        Map statisticsTodayResponseBody = response.getBody();
+        LinkedHashMap<String, Double> rates = (LinkedHashMap<String, Double>) statisticsTodayResponseBody.get("rates");
+        return rates.get(currency);
+    }
+
+
+    public String process(String currency){
         ResponseEntity<Map> statisticsTodayResponse = getStatisticsToday();
+        if(statisticsTodayResponse.getStatusCode() == HttpStatus.NOT_FOUND) {return "";}
+
         ResponseEntity<Map> statisticsBeforeResponse = getStatisticsBefore();
+        if(statisticsBeforeResponse.getStatusCode() == HttpStatus.NOT_FOUND) {return "";}
 
-        Map statisticsTodayResponseBody = statisticsTodayResponse.getBody();
-        LinkedHashMap<String, Double> linkedHashMapToday = (LinkedHashMap<String, Double>) statisticsTodayResponseBody.get("rates");
-        Double valueToday = linkedHashMapToday.get(currency);
+        Double valueToday = getRateFromParse(statisticsTodayResponse, currency);
 
-        Map statisticsBeforeResponseBody = statisticsBeforeResponse.getBody();
-        LinkedHashMap<String, Double> linkedHashMapBefore = (LinkedHashMap<String, Double>) statisticsBeforeResponseBody.get("rates");
-        Double valueBefore = (Double) linkedHashMapBefore.get(currency); //AED
+        Double valueBefore = getRateFromParse(statisticsBeforeResponse, currency); //AED
 
         String url = "";
 
         if (valueToday > valueBefore) {
-            ResponseEntity<Map> brokeGifResponse = gifClient.getGif(new URI(gifBaseUrl + "&api_key=" + gifApiKey + "&q=rich"));
-            Map brokeGifBody = brokeGifResponse.getBody();
-            ArrayList<Map> data = (ArrayList<Map>) brokeGifBody.get("data");
-            LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>> linkedHashMapRichGif = (LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>>) data.get(new Random().nextInt(26) - 1);
-            LinkedHashMap<String, LinkedHashMap<String, String>> images = (LinkedHashMap<String, LinkedHashMap<String, String>>) linkedHashMapRichGif.get("images");
-            LinkedHashMap<String, String> original = (LinkedHashMap<String, String>) images.get("original");
-
-            url = original.get("url");
-
+            ResponseEntity<Map> richGifResponse = getRichGif();
+            url = getGifUrlFromParse(richGifResponse);
         }
 
         if(valueToday <= valueBefore){
-            ResponseEntity<Map> brokeGifResponse = gifClient.getGif(new URI(gifBaseUrl + "&api_key=" + gifApiKey + "&q=broke"));
-            Map brokeGifBody = brokeGifResponse.getBody();
-            ArrayList<Map> data = (ArrayList<Map>) brokeGifBody.get("data");
-            LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>> linkedHashMapBrokeGif = (LinkedHashMap<String, LinkedHashMap<String, LinkedHashMap<String, String>>>) data.get(new Random().nextInt(26) - 1);
-            LinkedHashMap<String, LinkedHashMap<String, String>> images = (LinkedHashMap<String, LinkedHashMap<String, String>>) linkedHashMapBrokeGif.get("images");
-            LinkedHashMap<String, String> original = (LinkedHashMap<String, String>) images.get("original");
-
-            url = original.get("url");
+            ResponseEntity<Map> brokeGifResponse = getBrokeGif();
+            url = getGifUrlFromParse(brokeGifResponse);
         }
         return url;
     }
